@@ -53,12 +53,19 @@ const allowedOrigins = [
 //   })
 // );
 
-app.use(
-    cors({
-        origin: [ process.env.CLIENT_URL   || 'https://new-lms-8qgi.vercel.app/'],
-        credentials: true,
-    })
-);
+// app.use(
+//     cors({
+//         origin: [ process.env.CLIENT_URL   || 'https://new-lms-8qgi.vercel.app/'],
+//         credentials: true,
+//     })
+// );
+
+const corsOptions = {
+  origin: 'https://new-lms-8qgi.vercel.app', // Replace with your frontend's URL
+  credentials: true, // Allow cookies if needed
+};
+
+app.use(cors(corsOptions));
 
 
 // app.use(
