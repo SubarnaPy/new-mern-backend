@@ -55,7 +55,7 @@ const allowedOrigins = [
 
 app.use(
     cors({
-        origin: [ process.env.CLIENT_URL   || 'http://localhost:5173'],
+        origin: [ process.env.CLIENT_URL   || 'https://new-lms-8qgi.vercel.app/'],
         credentials: true,
     })
 );
