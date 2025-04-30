@@ -1,139 +1,201 @@
+// backend/socket.js
 import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
 
-// In-memory storage
-let connections = {};  // { courseId: [ { socketId, userId, name, role } ] }
-let messages = {};     // { courseId: [ messageData ] }
-let timeOnline = {};   // { socketId: loginTime }
+const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret";
 
-const JWT_SECRET = process.env.JWT_SECRET || "your_long_jwt_secret";
+// Improved data structures
+const courseRooms = new Map(); // Map<courseId, RoomState>
+const userConnections = new Map(); // Map<userId, { socketId, lastSeen }>
+
+class RoomState {
+  constructor() {
+    this.participants = new Map(); // Map<userId, UserData>
+    this.messages = [];
+    this.files = [];
+    this.raisedHands = new Set();
+    this.whiteboardState = null;
+  }
+}
 
 export const connectToSocket = (io) => {
-  // Authenticate socket connection using JWT
   io.use((socket, next) => {
-    const { token, courseId } = socket.handshake.auth;
-
-    if (!token || !courseId) {
-      return next(new Error("Authentication failed: Missing token or courseId"));
-    }
-
     try {
+      const { token, courseId } = socket.handshake.auth;
       const decoded = jwt.verify(token, JWT_SECRET);
-      socket.courseId = courseId;
-      socket.user = decoded;
+      
+      socket.user = {
+        id: decoded._id,
+        courseId,
+        name: decoded.name,
+        role: decoded.role
+      };
+      
       next();
-    } catch (err) {
-      return next(new Error("Token verification failed"));
+    } catch (error) {
+      next(new Error("Authentication failed"));
     }
   });
 
   io.on("connection", (socket) => {
-    const { courseId, user } = socket;
-    const userData = {
-      socketId: socket.id,
-      userId: user.id || socket.id,
-      name: user.email || "Unknown",
-      role: user.role || "STUDENT",
-    };
+    const { user } = socket;
+    let roomState = courseRooms.get(user.courseId);
 
-    // Initialize course data if not already present
-    if (!connections[courseId]) connections[courseId] = [];
-
-    // Check if the user is already connected to the course
-    const existing = connections[courseId].find(p => p.userId === userData.userId);
-
-    // If the user is already connected, just update the socket ID without disconnecting
-    if (existing) {
-      existing.socketId = socket.id;
-    } else {
-      // Add this new connection
-      connections[courseId].push(userData);
+    // Initialize room if not exists
+    if (!roomState) {
+      roomState = new RoomState();
+      courseRooms.set(user.courseId, roomState);
     }
 
-    timeOnline[socket.id] = new Date();
+    // Handle reconnection
+    const existingConnection = userConnections.get(user.id);
+    if (existingConnection) {
+      // Disconnect old socket
+      io.to(existingConnection.socketId).disconnect(true);
+    }
 
-    console.log(`✅ ${userData.name} connected to course ${courseId}`);
+    // Update connections
+    userConnections.set(user.id, {
+      socketId: socket.id,
+      lastSeen: Date.now()
+    });
 
-    // Notify all other participants that a new user has joined
-    connections[courseId].forEach(p => {
-      if (p.socketId !== socket.id) {
-        io.to(p.socketId).emit("user-joined", socket.id, {
-          userId: userData.userId,
-          name: userData.name,
-          role: userData.role
+    // Add/update participant
+    roomState.participants.set(user.id, {
+      userId: user.id,
+      name: user.name,
+      role: user.role,
+      connected: true
+    });
+
+    // Join room channel
+    socket.join(user.courseId);
+
+    // Send initial state to reconnecting user
+    socket.emit("room-state", {
+      participants: Array.from(roomState.participants.values()),
+      messages: roomState.messages.slice(-100),
+      files: roomState.files.slice(-10),
+      raisedHands: Array.from(roomState.raisedHands),
+      whiteboard: roomState.whiteboardState
+    });
+
+    // Notify others about connection update
+    socket.to(user.courseId).emit("participant-updated", {
+      userId: user.id,
+      status: 'connected'
+    });
+
+    // WebRTC Signaling
+    socket.on("offer", ({ targetUserId, offer }) => {
+      const target = userConnections.get(targetUserId);
+      if (target) {
+        io.to(target.socketId).emit("offer", {
+          fromUserId: user.id,
+          offer
         });
       }
     });
 
-    // Send current participants list to the newly joined user
-    io.to(socket.id).emit("participants", connections[courseId]);
-
-    // Send previous chat history to the new participant
-    if (messages[courseId]) {
-      messages[courseId].forEach(msg => {
-        io.to(socket.id).emit("chat-message", msg);
-      });
-    }
-
-    // Handle chat messages
-    socket.on("chat-message", (msgData) => {
-      if (!messages[courseId]) messages[courseId] = [];
-      messages[courseId].push(msgData);
-
-      // Broadcast message to all participants
-      connections[courseId].forEach(p => {
-        io.to(p.socketId).emit("chat-message", msgData);
-      });
+    socket.on("answer", ({ targetUserId, answer }) => {
+      const target = userConnections.get(targetUserId);
+      if (target) {
+        io.to(target.socketId).emit("answer", {
+          fromUserId: user.id,
+          answer
+        });
+      }
     });
 
-    // Handle WebRTC signaling
-    socket.on("signal", (toId, message) => {
-      io.to(toId).emit("signal", socket.id, message);
+    socket.on("ice-candidate", ({ targetUserId, candidate }) => {
+      const target = userConnections.get(targetUserId);
+      if (target) {
+        io.to(target.socketId).emit("ice-candidate", {
+          fromUserId: user.id,
+          candidate
+        });
+      }
     });
 
-    // Raise hand functionality
-    socket.on("raise-hand", (isRaised) => {
-      connections[courseId].forEach(p => {
-        io.to(p.socketId).emit("raise-hand", socket.id, isRaised);
-      });
+    // Chat handling
+    socket.on("chat-message", (message) => {
+      const msgData = {
+        ...message,
+        userId: user.id,
+        timestamp: Date.now()
+      };
+      
+      roomState.messages.push(msgData);
+      io.to(user.courseId).emit("chat-message", msgData);
     });
 
-    // Handle file sharing
+    // File sharing
     socket.on("share-file", (fileData) => {
-      connections[courseId].forEach(p => {
-        io.to(p.socketId).emit("file-shared", fileData);
+      const file = {
+        ...fileData,
+        userId: user.id,
+        timestamp: Date.now()
+      };
+      
+      roomState.files.push(file);
+      io.to(user.courseId).emit("file-shared", file);
+    });
+
+    // Raise hand
+    socket.on("raise-hand", (isRaised) => {
+      if (isRaised) {
+        roomState.raisedHands.add(user.id);
+      } else {
+        roomState.raisedHands.delete(user.id);
+      }
+      io.to(user.courseId).emit("raise-hand-update", {
+        userId: user.id,
+        isRaised
       });
     });
 
-    console.log()
-
-    // Handle ICE candidates for WebRTC
-    socket.on("ice-candidate", (toId, candidate) => {
-      io.to(toId).emit("ice-candidate", socket.id, candidate);
+    // Whiteboard
+    socket.on("whiteboard-update", (update) => {
+      if (user.role === 'INSTRUCTOR') {
+        roomState.whiteboardState = update;
+        socket.to(user.courseId).emit("whiteboard-update", update);
+      }
     });
 
-    // WebRTC offers and answers
-    socket.on("offer", (toId, offer) => {
-      socket.to(toId).emit("offer", socket.id, offer);
-    });
-
-    socket.on("answer", (toId, answer) => {
-      socket.to(toId).emit("answer", socket.id, answer);
-    });
-
-    // Handle user disconnecting
+    // Disconnection handler
     socket.on("disconnect", () => {
-      console.log(`❌ Disconnected: ${socket.id}`);
-
-      // Remove the user from the list of participants
-      connections[courseId] = connections[courseId]?.filter(p => p.socketId !== socket.id) || [];
-
-      // Notify other participants
-      connections[courseId].forEach(p => {
-        io.to(p.socketId).emit("user-left", socket.id);
-      });
-
-      delete timeOnline[socket.id];
+      userConnections.delete(user.id);
+      const participant = roomState.participants.get(user.id);
+      if (participant) {
+        participant.connected = false;
+        socket.to(user.courseId).emit("participant-updated", {
+          userId: user.id,
+          status: 'disconnected'
+        });
+      }
+      
+      // Cleanup empty rooms
+      if (roomState.participants.size === 0) {
+        courseRooms.delete(user.courseId);
+      }
     });
+
+    // Periodic cleanup
+    setInterval(() => {
+      const now = Date.now();
+      userConnections.forEach((value, key) => {
+        if (now - value.lastSeen > 30000) { // 30s timeout
+          userConnections.delete(key);
+          const participant = roomState.participants.get(key);
+          if (participant) {
+            participant.connected = false;
+            io.to(user.courseId).emit("participant-updated", {
+              userId: key,
+              status: 'disconnected'
+            });
+          }
+        }
+      });
+    }, 10000);
   });
 };
