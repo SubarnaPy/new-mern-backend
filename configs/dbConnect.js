@@ -11,7 +11,7 @@ const connectToDb=async()=>{
         console.log('connect',process.env.MONGO_URI2);
 
         // const {connection}=await mongoose.connect('mongodb://localhost:27017/lms3334');
-        const { connection } = await mongoose.connect('mongodb://127.0.0.1:27017/lms3334');
+        const { connection } = await mongoose.connect('mongodb+srv://mondalsubarna29:Su12345@cluster0.1kmazke.mongodb.net/Lmsss-----main ');
 
 
 
