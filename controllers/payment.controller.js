@@ -202,8 +202,8 @@ export const buyCourse = asyncHandler(async (req, res, next) => {
       payment_method_types: ['card'],
       line_items: lineItems,
       mode: 'payment',
-      success_url: `http://localhost:5173/payment-return?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `http://localhost:5173/payment-cancel`,
+      success_url: `https://new-lms-8qgi.vercel.app/payment-return?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `https://new-lms-8qgi.vercel.app/payment-cancel`,
       metadata: { userId, courses: JSON.stringify(courses) },
     });
 
