@@ -82,6 +82,27 @@ export const connectToSocket = (server) => {
                 delete liveClasses[classId];
             }
         });
+        socket.on("offer", ({ targetId, offer }) => {
+          io.to(targetId).emit("offer", {
+              senderId: socket.id,
+              offer,
+          });
+      });
+      
+      socket.on("answer", ({ targetId, answer }) => {
+          io.to(targetId).emit("answer", {
+              senderId: socket.id,
+              answer,
+          });
+      });
+      
+      socket.on("ice-candidate", ({ targetId, candidate }) => {
+          io.to(targetId).emit("ice-candidate", {
+              senderId: socket.id,
+              candidate,
+          });
+      });
+      
 
         socket.on("disconnect", () => {
             for (const classId in liveClasses) {
