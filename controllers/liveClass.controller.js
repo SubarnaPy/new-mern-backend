@@ -1,62 +1,48 @@
-
-
 export const connectToSocket = (io) => {
-    const users = {}; // Track users by roomId
+  const rooms = {}; // { [roomId]: Array<{ id: string, role: 'INSTRUCTOR'|'STUDENT' }> }
+  // const rooms = {};
+
+  io.on('connection', (socket) => {
+    console.log(`🟢 Socket connected: ${socket.id}`);
   
-    io.on('connection', (socket) => {
-      console.log('A user connected:', socket.id);
+    socket.on('join-room', (roomId, { role }) => {
+      // 1) Add this socket to our in-memory rooms map
+      rooms[roomId] = rooms[roomId] || [];
+      rooms[roomId].push({ id: socket.id, role });
+      socket.role = role;
+      socket.join(roomId);
   
-      // Handle user joining a room
-      socket.on('join-room', (roomId) => {
-        if (!users[roomId]) users[roomId] = [];
-        users[roomId].push(socket.id);
-        socket.join(roomId); // Join the specific room
+      // 2) Emit “all-users” to the newcomer: [ { id, role }, … ]
+      const others = rooms[roomId].filter(u => u.id !== socket.id);
+      socket.emit('all-users', others);
   
-        const otherUsers = users[roomId].filter(id => id !== socket.id);
-        socket.emit('all-users', otherUsers); // Emit the list of other users in the room
+      // 3) Tell everyone else in the room that someone joined
+      socket.to(roomId).emit('user-joined', { id: socket.id, role });
   
-        // Log the users in the room
-        console.log(`Users in room ${roomId}:`, users[roomId]);
+      // 4) Handle this socket disconnecting
+      socket.on('disconnect', () => {
+        if (!rooms[roomId]) return;
+        rooms[roomId] = rooms[roomId].filter(u => u.id !== socket.id);
+        if (rooms[roomId].length === 0) {
+          delete rooms[roomId];
+        }
+        socket.to(roomId).emit('user-disconnected', socket.id);
+        console.log(`After disconnect, room ${roomId}:`, rooms[roomId]);
+      });
   
-        // Notify other users that a new user has joined
-        socket.to(roomId).emit('user-joined', socket.id);
-  
-        // Handle disconnection
-        socket.on('disconnect', () => {
-          users[roomId] = users[roomId].filter(id => id !== socket.id);
-          if (users[roomId].length === 0) {
-            delete users[roomId]; // Clean up the room if no users are left
-          }
-          socket.to(roomId).emit('user-disconnected', socket.id); // Notify others of the disconnection
-  
-          // Log the remaining users in the room
-          console.log(`Users in room ${roomId} after disconnection:`, users[roomId]);
-        });
-  
-        // Handle receiving and emitting offer messages
-        socket.on('offer', (data) => {
-          socket.to(data.target).emit('offer', {
-            sdp: data.sdp,
-            caller: socket.id,
-          });
-        });
-  
-        // Handle receiving and emitting answer messages
-        socket.on('answer', (data) => {
-          socket.to(data.target).emit('answer', {
-            sdp: data.sdp,
-            responder: socket.id,
-          });
-        });
-  
-        // Handle ICE candidate exchange
-        socket.on('ice-candidate', (data) => {
-          socket.to(data.target).emit('ice-candidate', {
-            candidate: data.candidate,
-            sender: socket.id,
-          });
+      // 5) Signaling passthrough
+      socket.on('offer', ({ target, sdp }) => {
+        socket.to(target).emit('offer', { caller: socket.id, sdp });
+      });
+      socket.on('answer', ({ target, sdp }) => {
+        socket.to(target).emit('answer', { responder: socket.id, sdp });
+      });
+      socket.on('ice-candidate', ({ target, candidate }) => {
+        socket.to(target).emit('ice-candidate', {
+          sender: socket.id,
+          candidate
         });
       });
     });
-  };
-  
+  });
+}
