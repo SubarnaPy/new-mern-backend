@@ -1,4 +1,4 @@
-import shortid from 'shortid';
+
 
 export const connectToSocket = (io) => {
     const users = {};
