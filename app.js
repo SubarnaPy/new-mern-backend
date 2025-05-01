@@ -61,12 +61,11 @@ const allowedOrigins = [
 // );
 
 const corsOptions = {
-  origin: 'https://new-lms-8qgi.vercel.app', // Replace with your frontend's URL
-  credentials: true, // Allow cookies if needed
+  origin: ['https://new-lms-8qgi.vercel.app', 'https://statuesque-pithivier-aadc9c.netlify.app'], // Allowed origins
+  credentials: true,
 };
 
 app.use(cors(corsOptions));
-
 
 // app.use(
 //     corrs({
