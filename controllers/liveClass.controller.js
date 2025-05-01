@@ -28,27 +28,27 @@ export const connectToSocket = (io) => {
             socket.emit('class-created', classId);
         });
 
-        socket.on("join-class", (classId, userData) => {
-            if (!liveClasses[classId]) return socket.emit('invalid-class');
-            
-            const role = liveClasses[classId].teacher === socket.id ? 'teacher' : 'student';
-            userRoles[socket.id] = role;
-            
-            liveClasses[classId].students.add(socket.id);
-            socket.join(classId);
-            
-            // Notify teacher about new student
-            io.to(liveClasses[classId].teacher).emit('student-joined', {
-                id: socket.id,
-                ...userData
-            });
-            
-            // Send class state to new participant
-            socket.emit('class-state', {
-                isRecording: liveClasses[classId].isRecording,
-                handRaised: Array.from(liveClasses[classId].handRaised)
-            });
-        });
+        // Modify join-class handler to notify all participants
+socket.on("join-class", (classId, userData) => {
+    if (!liveClasses[classId]) return socket.emit('invalid-class');
+    
+    const role = liveClasses[classId].teacher === socket.id ? 'teacher' : 'student';
+    userRoles[socket.id] = role;
+    
+    liveClasses[classId].students.add(socket.id);
+    socket.join(classId);
+    
+    // Notify all participants about new user
+    io.to(classId).emit('participant-joined', socket.id);
+    
+    // Send existing participants to new user
+    const participants = [
+      liveClasses[classId].teacher,
+      ...Array.from(liveClasses[classId].students)
+    ].filter(id => id !== socket.id);
+    
+    socket.emit('existing-participants', participants);
+  });
 
         socket.on("raise-hand", (classId) => {
             if (userRoles[socket.id] === 'student') {
