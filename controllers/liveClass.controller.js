@@ -4,14 +4,8 @@ import { Server } from "socket.io";
 let liveClasses = {};
 let userRoles = {};
 
-export const connectToSocket = (server) => {
-    const io = new Server(server, {
-        cors: {
-            origin: "https://new-lms-8qgi.vercel.app/",
-            methods: ["GET", "POST"],
-            credentials: true
-        }
-    });
+export const connectToSocket = (io) => {
+   
 
     io.use((socket, next) => {
         // Add authentication middleware here (JWT verification)
