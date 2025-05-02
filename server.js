@@ -84,6 +84,10 @@ io.on('connection', socket => {
     io.to(target).emit('offer', { caller: socket.id, sdp, role });
   });
 
+  socket.on('whiteboard-draw', data => {
+    socket.to(socket.roomId).emit('whiteboard-draw', data);
+  });
+
   socket.on('answer', ({ target, sdp }) => {
     io.to(target).emit('answer', { responder: socket.id, sdp });
   });

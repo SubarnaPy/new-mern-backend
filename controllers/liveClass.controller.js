@@ -20,6 +20,10 @@ export const connectToSocket = (io) => {
       // Broadcast to others that a new user joined
       socket.to(roomId).emit('user-joined', { id: socket.id, role });
     });
+
+    socket.on('whiteboard-draw', data => {
+      socket.to(socket.roomId).emit('whiteboard-draw', data);
+    });
   
     // Relay offers, answers, and ICE candidates
     socket.on('offer', ({ target, sdp, role }) => {
