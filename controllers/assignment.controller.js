@@ -412,8 +412,7 @@ export const submitAssignment = async (req, res, next) => {
 // ✅ Grade a submission
 export const gradeAssignment = async (req, res) => {
   try {
-    const { assignmentId, studentId } = req.params;
-    const { marksObtained, feedback } = req.body;
+    const { assignmentId, submissionId, grade, verified } = req.body;
 
     const assignment = await Assignment.findById(assignmentId);
     if (!assignment) {
@@ -421,23 +420,25 @@ export const gradeAssignment = async (req, res) => {
     }
 
     const submission = assignment.submissions.find(
-      (sub) => sub.studentId.toString() === studentId
+      (sub) => sub._id.toString() === submissionId
     );
 
     if (!submission) {
       return res.status(404).json({ success: false, message: "Submission not found" });
     }
 
-    submission.marksObtained = marksObtained;
-    submission.feedback = feedback;
+    submission.marksObtained = grade;
+    submission.feedback = verified;
 
     await assignment.save();
 
     res.status(200).json({ success: true, message: "Grade updated successfully" });
   } catch (error) {
+    console.error("Grading error:", error);
     res.status(500).json({ success: false, message: "Failed to grade submission" });
   }
 };
+
 
 // ✅ Fetch all submissions for an assignment
 export const fetchSubmissions = async (req, res) => {
@@ -450,6 +451,8 @@ export const fetchSubmissions = async (req, res) => {
       "submissions.studentId",
       "name email"
     );
+
+    console.log("------------------------------------------------",assignment)
 
     if (!assignment) {
       return res.status(404).json({ success: false, message: "Assignment not found" });

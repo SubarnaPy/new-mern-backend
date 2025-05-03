@@ -46,7 +46,7 @@ const server = createServer(app);
 //     transports: ['websocket']
 //   });
 //  connectToSocket(io);
-// initializeChat(io);
+initializeChat(io);
 
 
 const io = new Server(server, {
