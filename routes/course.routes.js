@@ -38,7 +38,7 @@ import {
   isInstructor, isStudent, isAdmin 
 } from '../middlewares/auth.middleware.js';
 import upload, { uploadMultiple } from '../middlewares/multer.middleware.js';
-import { updateAssignmentProgress, updateCourseProgress } from '../controllers/courseProgress.controller.js';
+import { updateAssignmentProgress, updateCourseProgress, updateQuizProgress } from '../controllers/courseProgress.controller.js';
 import { createCategory,addCourseToCategory,categoryPageDetails, showAllCategories } from '../controllers/catagory.controller.js';
 import { createAssignment, deleteAssignment, fetchSubmissions, getAssignment, gradeAssignment, submitAssignment, updateAssignment } from '../controllers/assignment.controller.js';
 import { createQuiz, getQuizBySection, submitQuiz } from '../controllers/quize.controller.js';
@@ -115,9 +115,11 @@ router.get("/assignments/:assignmentId/submissions", fetchSubmissions);
 router.post("/sections/assignments/submit",upload.single('Assignmentfile'), submitAssignment);
 router.post("/grade/gradeAssignment", gradeAssignment);
 router.post("/assignments/complete",isLoggedIn, updateAssignmentProgress);
+router.post("/quize/complete",isLoggedIn, updateQuizProgress);
+
 router.post("/createquizzes", createQuiz);
-router.get("/getQuizBySection", getQuizBySection);
-router.post("/submit/:quizId", submitQuiz);
+router.post("/getQuizBySection",isLoggedIn, getQuizBySection);
+router.post("/submitQuize", isLoggedIn,submitQuiz);
 router.post("/deleteAssignment", deleteAssignment);     
 router.post("/updateAssignment", upload.single("file"), updateAssignment);
 

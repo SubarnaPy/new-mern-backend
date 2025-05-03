@@ -1,7 +1,7 @@
 import asyncHandler from "../middlewares/asyncHandler.middleware.js";
 import Assignment from "../models/assignment.model.js";
 import CourseProgress from "../models/courseProgress.model.js";
-import Quiz from "../models/quize.model.js";
+import {Quiz} from "../models/quize.model.js";
 import SubSection from "../models/subSection.model.js";
 
 //course progress add course in courseProgress
@@ -113,47 +113,56 @@ export const updateAssignmentProgress = asyncHandler(async (req, res) => {
 
 // 📌 Update Course Progress for Quizzes
 export const updateQuizProgress = asyncHandler(async (req, res) => {
+    console.log("Incoming request body:", req.body);
+    
     const { courseId, quizId } = req.body;
     const userId = req.user.id;
-
+    console.log("User ID:", userId);
+  
     try {
-        const quiz = await Quiz.findById(quizId);
-
-        if (!quiz) {
-            return res.status(404).json({ error: "Invalid Quiz" });
-        }
-
-        let courseProgress = await CourseProgress.findOne({
-            courseID: courseId,
-            userId: userId
-        });
-
-        if (!courseProgress) {
-            return res.status(404).json({ error: "Course Progress not found" });
-        }
-
-        if (courseProgress.completedQuizzes.includes(quizId)) {
-            return res.status(200).json({
-                success: false,
-                message: "Quiz already completed"
-            });
-        }
-
-        courseProgress.completedQuizzes.push(quizId);
-        await courseProgress.save();
-
+      const quiz = await Quiz.findById(quizId);
+      if (!quiz) {
+        console.warn("Quiz not found for ID:", quizId);
+        return res.status(404).json({ error: "Invalid Quiz" });
+      }
+  
+      let courseProgress = await CourseProgress.findOne({
+        courseID: courseId,
+        userId: userId,
+      });
+  
+      if (!courseProgress) {
+        console.warn("Course progress not found for user:", userId, "course:", courseId);
+        return res.status(404).json({ error: "Course Progress not found" });
+      }
+  
+      console.log("Existing completed quizzes:", courseProgress.completedQuizzes);
+  
+      if (courseProgress.completedQuizzes.includes(quizId)) {
+        console.log("Quiz already marked as completed:", quizId);
         return res.status(200).json({
-            success: true,
-            message: "Quiz progress updated successfully",
-            completedQuizzes: courseProgress.completedQuizzes
+          success: true,
+          message: "Quiz completed",
         });
-
+      }
+  
+      courseProgress.completedQuizzes.push(quizId);
+      await courseProgress.save();
+  
+      console.log("Updated completed quizzes:", courseProgress.completedQuizzes);
+  
+      return res.status(200).json({
+        success: true,
+        message: "Quiz progress updated successfully",
+        completedQuizzes: courseProgress.completedQuizzes,
+      });
+  
     } catch (error) {
-        console.error(error);
-        return res.status(500).json({ error: "Internal Server Error" });
+      console.error("Error updating quiz progress:", error);
+      return res.status(500).json({ error: "Internal Server Error" });
     }
-});
-
+  });
+  
 
 
 
