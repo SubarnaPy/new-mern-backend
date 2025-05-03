@@ -46,7 +46,6 @@ const server = createServer(app);
 //     transports: ['websocket']
 //   });
 //  connectToSocket(io);
-initializeChat(io);
 
 
 const io = new Server(server, {
@@ -57,6 +56,9 @@ const io = new Server(server, {
   },
   transports: ['websocket', 'polling'],
 });
+
+initializeChat(io);
+
 
 // In-memory room tracking
 const rooms = {}; // { [roomId]: Array<{ id: string, role: 'INSTRUCTOR' | 'STUDENT' }> }
