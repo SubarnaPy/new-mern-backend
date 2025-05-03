@@ -145,7 +145,8 @@ router.post("/updateAssignment", upload.single("file"), updateAssignment);
   
   
 
-  
+router.post('/execute', runCode);
+
   // Route to handle course search
   router.get('/course/search', searchCourses);  
 
