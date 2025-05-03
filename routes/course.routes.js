@@ -42,6 +42,7 @@ import { updateAssignmentProgress, updateCourseProgress, updateQuizProgress } fr
 import { createCategory,addCourseToCategory,categoryPageDetails, showAllCategories } from '../controllers/catagory.controller.js';
 import { createAssignment, deleteAssignment, fetchSubmissions, getAssignment, gradeAssignment, submitAssignment, updateAssignment } from '../controllers/assignment.controller.js';
 import { createQuiz, getQuizBySection, submitQuiz } from '../controllers/quize.controller.js';
+import { runCode } from '../controllers/codeController.js';
 
 const router = Router();
 
