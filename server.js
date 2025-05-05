@@ -126,14 +126,7 @@ io.on('connection', socket => {
 const port = process.env.PORT || 5001;
 
 // ////////////////////////////////////////////////////////////////////////////////////////////
-// if(process.env.NODE_ENV === 'production'){
-//     const dirPath=path.resolve();
 
-//     app.use(express.static("./frontend/dist"));
-//     app.get("*",(req,res)=>{
-//         res.sendFile(path.resolve(dirPath,"frontend/dist","index.html"));
-//     })
-// }
 
 // Start the server
 server.listen(port, async () => {

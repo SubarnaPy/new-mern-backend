@@ -412,7 +412,8 @@ export const submitAssignment = async (req, res, next) => {
 // ✅ Grade a submission
 export const gradeAssignment = async (req, res) => {
   try {
-    const { assignmentId, submissionId, grade, verified } = req.body;
+    const { assignmentId, submissionId, grade, feedback, verified } = req.body;
+    console.log(req.body)
 
     const assignment = await Assignment.findById(assignmentId);
     if (!assignment) {
@@ -428,7 +429,7 @@ export const gradeAssignment = async (req, res) => {
     }
 
     submission.marksObtained = grade;
-    submission.feedback = verified;
+    submission.feedback = feedback;
 
     await assignment.save();
 
