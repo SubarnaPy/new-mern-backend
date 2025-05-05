@@ -1,5 +1,7 @@
 import crypto from 'crypto';
-require('dotenv').config();
+import dotenv from 'dotenv';
+dotenv.config();
+
 
 import asyncHandler from '../middlewares/asyncHandler.middleware.js';
 import User from '../models/user.model.js';
