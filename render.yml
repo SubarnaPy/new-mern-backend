@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: code-execution-api
+    env: node
+    plan: free
+    buildCommand: |
+      apt-get update
+      apt-get install -y openjdk-17-jdk g++ gcc python3
+      npm install
+    startCommand: node index.js
+    envVars:
+      - key: DISABLE_JAVA
+        value: "false"
+    autoDeploy: true
