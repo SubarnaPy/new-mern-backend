@@ -88,11 +88,15 @@ export const executeCode = async (language, code, input = '') => {
       return await new Promise((resolve, reject) => {
         exec(compileCmd, { cwd: tempDir }, (compileErr, _, compileStderr) => {
           if (compileErr) {
+            console.error(`Compilation error: ${compileErr}`);
+            console.error(`Compilation stderr: ${compileStderr}`);
             return reject(`Java compilation error:\n${compileStderr}`);
           }
 
           exec(runCmd, { cwd: tempDir }, (runErr, stdout, stderr) => {
             if (runErr) {
+              console.error(`Execution error: ${runErr}`);
+              console.error(`Execution stderr: ${stderr}`);
               return reject(`Java execution error:\n${stderr}`);
             }
             resolve(stdout || stderr || 'No output');
@@ -113,6 +117,7 @@ export const executeCode = async (language, code, input = '') => {
       });
     });
   } catch (error) {
+    console.error('Execution failed:', error);
     return `Execution failed: ${error.message}`;
   } finally {
     await rm(tempDir, { recursive: true, force: true });
