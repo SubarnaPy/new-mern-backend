@@ -4,10 +4,13 @@ services:
     env: node
     plan: free
     buildCommand: |
-      # Install required packages
-      apt-get update
-      apt-get install -y openjdk-17-jdk g++ gcc python3
-      npm install
+     apt-get update
+     apt-get install -y openjdk-17-jdk g++ gcc python3
+     export PATH=$PATH:/usr/lib/jvm/java-17-openjdk-amd64/bin
+     java -version  # Check if Java is installed properly
+     javac -version  # Check if javac is available
+     npm install
+
     startCommand: node index.js
     envVars:
       # Flag to control Java execution (you can toggle it via Render dashboard)
