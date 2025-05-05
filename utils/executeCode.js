@@ -8,11 +8,10 @@ import { createContext, runInContext } from 'vm';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Language configuration
 const languageConfig = {
   javascript: {
     extension: 'js',
-    runCmd: () => null  // Handled with VM, so no shell command needed
+    runCmd: (filename) => `node ${filename}`, // fallback if needed
   },
   python: {
     extension: 'py',
@@ -65,36 +64,38 @@ export const executeCode = async (language, code, input = '') => {
     await writeFile(filePath, code);
     await writeFile(inputPath, input);
 
+    // === JavaScript execution in a VM sandbox ===
     if (language === 'javascript') {
-      return await new Promise((resolve, reject) => {
-        const output = [];
-        const sandbox = {
-          console: {
-            log: (...args) => output.push(args.join(' ')),
-            error: (...args) => output.push(args.join(' ')),
-          },
-          input,
-          require,
-        };
-        try {
-          runInContext(code, createContext(sandbox));
-          resolve(output.join('\n') || 'JavaScript executed with no output.');
-        } catch (err) {
-          reject(`Error executing JavaScript code: ${err.message}`);
+      let output = [];
+
+      const sandbox = {
+        console: {
+          log: (...args) => output.push(args.join(' ')),
+          error: (...args) => output.push(args.join(' ')),
+        },
+        input, // optionally pass input to JS
+      };
+
+      try {
+        runInContext(code, createContext(sandbox));
+        return output.join('\n') || 'JavaScript code executed.';
+      } catch (err) {
+        return `Error executing JavaScript code: ${err.message}`;
+      }
+    }
+
+    // === Other languages ===
+    const command = languageConfig[language].runCmd(filePath);
+
+    return await new Promise((resolve, reject) => {
+      exec(command, { cwd: tempDir, timeout: 10000 }, (err, stdout, stderr) => {
+        if (err) {
+          reject(`Execution error: ${err.message}\n${stderr}`);
+        } else {
+          resolve(stdout || stderr || 'No output');
         }
       });
-    } else {
-      const command = languageConfig[language].runCmd(filePath);
-      return await new Promise((resolve, reject) => {
-        exec(command, { cwd: tempDir, timeout: 10000 }, (err, stdout, stderr) => {
-          if (err) {
-            reject(`Execution error: ${err.message}\n${stderr}`);
-          } else {
-            resolve(stdout || stderr);
-          }
-        });
-      });
-    }
+    });
   } catch (error) {
     return `Execution failed: ${error.message}`;
   } finally {
