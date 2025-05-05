@@ -11,7 +11,7 @@ const __dirname = path.dirname(__filename);
 const languageConfig = {
   javascript: {
     extension: 'js',
-    runCmd: (filename) => `node ${filename}`, // fallback if needed
+    runCmd: (filename) => `node ${filename}`,
   },
   python: {
     extension: 'py',
@@ -40,10 +40,7 @@ const languageConfig = {
   },
   java: {
     extension: 'java',
-    runCmd: (filename) => {
-      const className = path.basename(filename, '.java');
-      return `javac "${filename}" && java ${className}`;
-    },
+    runCmd: () => null, // handled separately
   },
 };
 
@@ -64,36 +61,54 @@ export const executeCode = async (language, code, input = '') => {
     await writeFile(filePath, code);
     await writeFile(inputPath, input);
 
-    // === JavaScript execution in a VM sandbox ===
     if (language === 'javascript') {
-      let output = [];
-
+      // JavaScript sandbox using vm
       const sandbox = {
-        console: {
-          log: (...args) => output.push(args.join(' ')),
-          error: (...args) => output.push(args.join(' ')),
-        },
-        input, // optionally pass input to JS
+        console,
+        input,
       };
 
-      try {
-        runInContext(code, createContext(sandbox));
-        return output.join('\n') || 'JavaScript code executed.';
-      } catch (err) {
-        return `Error executing JavaScript code: ${err.message}`;
-      }
+      return await new Promise((resolve, reject) => {
+        try {
+          const context = createContext(sandbox);
+          const result = runInContext(code, context);
+          resolve(result ?? 'JavaScript code executed.');
+        } catch (err) {
+          reject(`JavaScript error: ${err.message}`);
+        }
+      });
     }
 
-    // === Other languages ===
+    if (language === 'java') {
+      const compileCmd = `javac ${filename}`;
+      const className = path.basename(filename, '.java');
+      const runCmd = `java ${className}`;
+
+      return await new Promise((resolve, reject) => {
+        exec(compileCmd, { cwd: tempDir }, (compileErr, _, compileStderr) => {
+          if (compileErr) {
+            return reject(`Java compilation error:\n${compileStderr}`);
+          }
+
+          exec(runCmd, { cwd: tempDir }, (runErr, stdout, stderr) => {
+            if (runErr) {
+              return reject(`Java execution error:\n${stderr}`);
+            }
+            resolve(stdout || stderr || 'No output');
+          });
+        });
+      });
+    }
+
+    // Other languages
     const command = languageConfig[language].runCmd(filePath);
 
     return await new Promise((resolve, reject) => {
       exec(command, { cwd: tempDir, timeout: 10000 }, (err, stdout, stderr) => {
         if (err) {
-          reject(`Execution error: ${err.message}\n${stderr}`);
-        } else {
-          resolve(stdout || stderr || 'No output');
+          return reject(`Execution error: ${err.message}\n${stderr}`);
         }
+        resolve(stdout || stderr || 'No output');
       });
     });
   } catch (error) {

@@ -4,11 +4,14 @@ services:
     env: node
     plan: free
     buildCommand: |
+      # Install required packages
       apt-get update
       apt-get install -y openjdk-17-jdk g++ gcc python3
       npm install
     startCommand: node index.js
     envVars:
+      # Flag to control Java execution (you can toggle it via Render dashboard)
       - key: DISABLE_JAVA
         value: "false"
+      # Add other necessary environment variables here
     autoDeploy: true
