@@ -84,7 +84,7 @@ export const executeCode = async (language, code, input = '') => {
     });
 
   } catch (error) {
-    // Handle both Error objects and string messages
+    // Handle both Error objects and string sages
     const message = error instanceof Error ? error.message : error;
     throw new Error(`Execution failed: ${message}`);
   } finally {
