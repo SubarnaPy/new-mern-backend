@@ -40,7 +40,7 @@ const languageConfig = {
   },
   java: {
     extension: 'java',
-    runCmd: () => null, // handled separately
+    runCmd: () => null, // handled separately for Java
   },
 };
 
@@ -80,6 +80,7 @@ export const executeCode = async (language, code, input = '') => {
     }
 
     if (language === 'java') {
+      // Java: compile and execute separately
       const compileCmd = `javac ${filename}`;
       const className = path.basename(filename, '.java');
       const runCmd = `java ${className}`;
