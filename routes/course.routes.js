@@ -43,6 +43,7 @@ import { createCategory,addCourseToCategory,categoryPageDetails, showAllCategori
 import { createAssignment, deleteAssignment, fetchSubmissions, getAssignment, gradeAssignment, submitAssignment, updateAssignment } from '../controllers/assignment.controller.js';
 import { createQuiz, getQuizBySection, submitQuiz } from '../controllers/quize.controller.js';
 import { runCode } from '../controllers/codeController.js';
+import { createExam, deleteExam, getExams, getExamsByUserId, updateExam } from '../controllers/exam.controller.js';
 
 const router = Router();
 
@@ -156,6 +157,15 @@ router.post('/execute', runCode);
 // console.log(isLoggedIn); // Should not be undefined
 // console.log(authorizeRoles); // Should not be undefined
 // console.log(upload); // Should not be undefined
+
+
+
+
+router.post('/exam', createExam); // Create exam
+router.put('/exam/:examId', updateExam); // Update exam
+router.delete('/exam/:examId', deleteExam); // Delete exam
+router.get('/exams', getExams); // Get all exams
+router.get('/instructor/:userId', getExamsByUserId);
 
 
 export default router;
