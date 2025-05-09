@@ -44,6 +44,7 @@ async function sendVerificationMail(email,otp){
        });
 
         const mailResponse = await sendMail(email,"verification mail",emailContent);
+        console.log(mailResponse)
         
     } catch (error) {
         console.error('Error sending mail:', error);
