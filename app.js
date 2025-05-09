@@ -37,39 +37,34 @@ app.use(express.urlencoded({ extended: true }));
 // ];
 const allowedOrigins = [
 
-  "http://localhost:5173/"
+  "https://new-lms-8qgi.vercel.app"
 ];
 
-// app.use(
-//   cors({
-//     origin: function (origin, callback) {
-//       if (!origin || allowedOrigins.includes(origin)) {
-//         callback(null, true);
-//       } else {
-//         callback(new Error("Not allowed by CORS"));
-//       }
-//     },
-//     credentials: true,
-//   })
-// );
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  })
+);
+
+
+
+// const corsOptions = {
+//   origin: ['https://new-lms-8qgi.vercel.app', 'https://statuesque-pithivier-aadc9c.netlify.app'], // Allowed origins
+//   credentials: true,
+// };
+
+// app.use(cors(corsOptions));
 
 // app.use(
 //     cors({
-//         origin: [ process.env.CLIENT_URL   || 'https://new-lms-8qgi.vercel.app/'],
-//         credentials: true,
-//     })
-// );
-
-const corsOptions = {
-  origin: ['https://new-lms-8qgi.vercel.app', 'https://statuesque-pithivier-aadc9c.netlify.app'], // Allowed origins
-  credentials: true,
-};
-
-app.use(cors(corsOptions));
-
-// app.use(
-//     corrs({
-//         origin: [ process.env.CLIENT_URL   || 'http://localhost:5173'],
+//         origin: 'https://new-lms-8qgi.vercel.app',
 //         credentials: true,
 //     })
 // );
