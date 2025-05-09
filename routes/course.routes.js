@@ -165,7 +165,7 @@ router.post('/exam', createExam); // Create exam
 router.put('/exam/:examId', updateExam); // Update exam
 router.delete('/exam/:examId', deleteExam); // Delete exam
 router.get('/exams', getExams); // Get all exams
-router.get('/instructor/:userId', getExamsByUserId);
+router.get('/exams/:userId', getExamsByUserId);
 
 
 export default router;
