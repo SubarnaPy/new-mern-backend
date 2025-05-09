@@ -59,7 +59,7 @@ export const sendOtp = asyncHandler(async (req, res, next) => {
             otp
         })
         if(!createdOtp){
-            return next(new AppError('Failed to create OTP',400));
+            return next(new AppError('Failed gg to create OTP',400));
         }
 
         return res.status(200).json({

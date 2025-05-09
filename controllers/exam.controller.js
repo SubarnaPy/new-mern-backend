@@ -3,6 +3,8 @@ import Exam from '../models/exam.model.js'; // Import the Exam model
 // Create a new exam
 export const createExam = async (req, res) => {
   try {
+
+    console.log(req.body)
     const {
       title,
       instructions,
@@ -25,7 +27,7 @@ export const createExam = async (req, res) => {
     });
 
     await exam.save();
-    res.status(201).json({ message: 'Exam created successfully', exam });
+    res.status(201).json({ message: 'Exam is created successfully', exam });
   } catch (error) {
     res.status(400).json({ message: 'Error creating exam', error });
   }
